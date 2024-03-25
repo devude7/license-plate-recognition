@@ -22,12 +22,6 @@ gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (19, 5))
 blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel)
 
-squareKern = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-light = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, squareKern)
-light = cv2.threshold(light, 0, 255,
-    cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-
-
 gradX = cv2.Sobel(blackhat, ddepth=cv2.CV_32F,
     dx=1, dy=0, ksize=-1)
 gradX = np.absolute(gradX)
@@ -60,7 +54,7 @@ thresh = cv2.dilate(thresh, None, iterations=4)
 #cv2.imshow('thresh6', thresh)
 
 
-# getting potential licence plate countours 
+# getting potential licence plate contours 
 cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
     cv2.CHAIN_APPROX_SIMPLE)
 cnts = imutils.grab_contours(cnts)
@@ -83,7 +77,8 @@ for c in cnts:
 
 cv2.imshow("License Plate", licensePlate)
 roi = clear_border(roi)
-#cv2.imshow("ROI2", roi)
+roi = cv2.GaussianBlur(roi, (3, 3), 0)
+#cv2.imshow("ROI", roi)
 
 text = pytesseract.image_to_string(roi)
 print(f"Licence plate: {filter_ocr(text)}")
