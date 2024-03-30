@@ -17,12 +17,19 @@ args = vars(ap.parse_args())
 for image in os.listdir(args['images']):
 
     img = cv2.imread(os.path.join('data', image))
+    cv2.imshow("Orginal", img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # applying morphological operations to locate potential licence plate locations
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (19, 5))
     blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel)
+
+    squareKern = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    light = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, squareKern)
+    light = cv2.threshold(light, 0, 255,
+        cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    #cv2.imshow("Light", light)
 
     gradX = cv2.Sobel(blackhat, ddepth=cv2.CV_32F,
         dx=1, dy=0, ksize=-1)
@@ -37,29 +44,21 @@ for image in os.listdir(args['images']):
     thresh = cv2.threshold(gradX, 0, 255,
         cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
     #cv2.imshow('thresh0', thresh)
-
-    squareKern = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    light = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, squareKern)
-    cv2.imshow("Light1", light)
-    light = cv2.threshold(light, 0, 255,
-        cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-    cv2.imshow("Light2", light)
-
-
+    
     thresh = cv2.erode(thresh, None, iterations=2)
-    cv2.imshow('thresh1', thresh)
+    #cv2.imshow('thresh1', thresh)
     thresh = cv2.dilate(thresh, None, iterations=5)
-    cv2.imshow('thresh2', thresh)
+    #cv2.imshow('thresh2', thresh)
     thresh = cv2.erode(thresh, None, iterations=5)
-    cv2.imshow('thresh3', thresh)
+    #cv2.imshow('thresh3', thresh)
     thresh = cv2.dilate(thresh, None, iterations=8)
-    cv2.imshow('thresh4', thresh)
+    #cv2.imshow('thresh4', thresh)
 
     thresh_cb = clear_border(thresh)
-    cv2.imshow("thresh-clear", thresh_cb)
+    #cv2.imshow("thresh-clear", thresh_cb)
     
     thresh_bit = cv2.bitwise_and(thresh_cb, thresh_cb, mask=light)
-    cv2.imshow('thresh-bitwise', thresh_bit)
+    #cv2.imshow('thresh-bitwise', thresh_bit)
 
 
     # getting potential licence plate contours 
@@ -87,7 +86,7 @@ for image in os.listdir(args['images']):
         
     else:
         roi = clear_border(roi)
-        # Resize the image
+        # Resize and erode the image before ocr
         scale_factor = 2.5  
         roi = cv2.resize(roi, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
         roi = cv2.erode(roi, None, iterations=1)
@@ -103,7 +102,7 @@ for image in os.listdir(args['images']):
             lpCnt = None
             roi = None
 
-            # loop over the license plate candidate contours
+            # loop over the license plate candidate contours without bitwise
             for c in cnts:
                 (x, y, w, h) = cv2.boundingRect(c)
                 ar = w / float(h)
@@ -118,14 +117,14 @@ for image in os.listdir(args['images']):
                 print("License Plate not found!")
             else:
                 roi = clear_border(roi)
-                # Resize the image
+                # Resize and erode the image before ocr
                 scale_factor = 2.5  
                 roi = cv2.resize(roi, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
                 roi = cv2.erode(roi, None, iterations=1)
 
                 text = reader.readtext(roi, detail = 0)
 
-        print(f"Licence plate: {filter_ocr(text[0]) if text else 'Not detected'}")
+        print(f"Licence plate: {filter_ocr(text[0]) if text else 'Number not detected'}")
         cv2.imshow("ROI", roi)
         cv2.imshow("License Plate", licensePlate)
         cv2.waitKey(0)
