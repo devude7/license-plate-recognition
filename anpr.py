@@ -38,51 +38,95 @@ for image in os.listdir(args['images']):
         cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
     #cv2.imshow('thresh0', thresh)
 
+    squareKern = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    light = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, squareKern)
+    cv2.imshow("Light1", light)
+    light = cv2.threshold(light, 0, 255,
+        cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    cv2.imshow("Light2", light)
+
 
     thresh = cv2.erode(thresh, None, iterations=2)
-    #cv2.imshow('thresh1', thresh)
+    cv2.imshow('thresh1', thresh)
     thresh = cv2.dilate(thresh, None, iterations=5)
-    #cv2.imshow('thresh2', thresh)
+    cv2.imshow('thresh2', thresh)
     thresh = cv2.erode(thresh, None, iterations=5)
-    #cv2.imshow('thresh3', thresh)
+    cv2.imshow('thresh3', thresh)
     thresh = cv2.dilate(thresh, None, iterations=8)
-    #cv2.imshow('thresh4', thresh)
+    cv2.imshow('thresh4', thresh)
 
-    thresh = clear_border(thresh)
-    #cv2.imshow("thresh-clear", thresh)
-    thresh = cv2.erode(thresh, None, iterations=4)
-    #cv2.imshow('thresh5', thresh)
-    thresh = cv2.dilate(thresh, None, iterations=4)
-    #cv2.imshow('thresh6', thresh)
+    thresh_cb = clear_border(thresh)
+    cv2.imshow("thresh-clear", thresh_cb)
+    
+    thresh_bit = cv2.bitwise_and(thresh_cb, thresh_cb, mask=light)
+    cv2.imshow('thresh-bitwise', thresh_bit)
 
 
     # getting potential licence plate contours 
-    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+    cnts = cv2.findContours(thresh_bit.copy(), cv2.RETR_EXTERNAL,
         cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
-    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
+    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:10]
 
     lpCnt = None
     roi = None
 
-    # loop over the license plate candidate contours
+    # loop over the license plate candidate contours with bitwise
     for c in cnts:
         (x, y, w, h) = cv2.boundingRect(c)
         ar = w / float(h)
 
-        if ar >= 1 and ar <= 6:
+        if ar >= 2 and ar <= 5:
             lpCnt = c
             licensePlate = gray[y:y + h, x:x + w]
             roi = cv2.threshold(licensePlate, 0, 255,
                 cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
             break
+    if roi is None or not roi.any():
+        print("License Plate not found!")
+        
+    else:
+        roi = clear_border(roi)
+        # Resize the image
+        scale_factor = 2.5  
+        roi = cv2.resize(roi, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+        roi = cv2.erode(roi, None, iterations=1)
 
-    cv2.imshow("License Plate", licensePlate)
-    roi = clear_border(roi)
-    roi = cv2.GaussianBlur(roi, (3, 3), 0)
-    #cv2.imshow("ROI", roi)
+        text = reader.readtext(roi, detail = 0)
+        if not text:
+            # if text is empty(propably licence was not detected correctly) we'll get potential licence plate contours without bitwise 
+            cnts = cv2.findContours(thresh_cb.copy(), cv2.RETR_EXTERNAL,
+                cv2.CHAIN_APPROX_SIMPLE)
+            cnts = imutils.grab_contours(cnts)
+            cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:10]
 
-    text = reader.readtext(roi, detail = 0)
-    print(f"Licence plate: {filter_ocr(text[0]) if text else 'Not detected'}")
+            lpCnt = None
+            roi = None
 
-    cv2.waitKey(0)
+            # loop over the license plate candidate contours
+            for c in cnts:
+                (x, y, w, h) = cv2.boundingRect(c)
+                ar = w / float(h)
+
+                if ar >= 1 and ar <= 6:
+                    lpCnt = c
+                    licensePlate = gray[y:y + h, x:x + w]
+                    roi = cv2.threshold(licensePlate, 0, 255,
+                        cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+                    break
+            if roi is None or not roi.any():
+                print("License Plate not found!")
+            else:
+                roi = clear_border(roi)
+                # Resize the image
+                scale_factor = 2.5  
+                roi = cv2.resize(roi, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+                roi = cv2.erode(roi, None, iterations=1)
+
+                text = reader.readtext(roi, detail = 0)
+
+        print(f"Licence plate: {filter_ocr(text[0]) if text else 'Not detected'}")
+        cv2.imshow("ROI", roi)
+        cv2.imshow("License Plate", licensePlate)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
