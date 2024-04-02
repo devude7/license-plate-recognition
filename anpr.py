@@ -159,7 +159,7 @@ for image in os.listdir(args['images']):
             iou = bb_intersection_over_union(lp_coords, ann_coords)
             cv2.rectangle(img, (ann_xmin, ann_ymin), (ann_xmax, ann_ymax), (0, 255, 0), 2)
             cv2.rectangle(img, (lp_xmin, lp_ymin), (lp_xmax, lp_ymax), (128, 0, 128), 2)
-            print(f'Intersection over Union(IoU) metric: {iou}')
+            print(f'Intersection over Union(IoU) metric: {iou:.3f}')
 
             iou_mean += iou
             # if we were not to include those lp that were incorrectly identified (only 1 case in data set)
@@ -172,4 +172,4 @@ for image in os.listdir(args['images']):
         cv2.destroyAllWindows()
 
 if args['annotations']:
-    print(f'Intersection over Union(IoU) mean: {iou_mean / count}')
+    print(f'Intersection over Union(IoU) mean: {(iou_mean / count):.3f}')
