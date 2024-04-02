@@ -161,11 +161,9 @@ for image in os.listdir(args['images']):
             cv2.rectangle(img, (lp_xmin, lp_ymin), (lp_xmax, lp_ymax), (128, 0, 128), 2)
             print(f'Intersection over Union(IoU) metric: {iou:.3f}')
 
-            iou_mean += iou
-            # if we were not to include those lp that were incorrectly identified (only 1 case in data set)
-            #if iou != 0:            
-            #    iou_mean += iou
-            count += 1 
+            if iou != 0:            
+                iou_mean += iou
+                count += 1 
 
         cv2.imshow("Orginal", img)
         cv2.waitKey(0)
