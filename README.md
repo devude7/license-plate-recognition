@@ -37,11 +37,11 @@ Apply OCR on the region of interest, filtering characters and displaying the res
 If the -a argument is passed, the program will calculate the intersection over union metric based on coordinates provided in XML files in the database and our locally calculated coordinates derived from the license plate candidate contours. Additionally, rectangles are plotted onto the picture to provide a clearer visualization of both sets of coordinates.
 
 # **Results**
-18 out of 20 plates correctly identified. Among these, 16 had only the license plate itself(high IOU score), while 2 contained additional areas(low IOU score).
+**18 out of 20** plates correctly identified. Among these, 16 had only the license plate itself(high IOU score), while 2 contained additional areas(low IOU score).
 
 
-8 out of 20 OCR results were completely accurate, some having only one character error and others showing multiple errors. I don't know why the errors occur, as some OCR results aren't correct even though you can cleary see all characters on image passed to OCR.
+**8 out of 20** OCR results were completely accurate, some having only one character error and others showing multiple errors. I don't know why the errors occur, as some OCR results aren't correct even though you can cleary see all characters on image passed to OCR.
 
-Achieved an average IOU metric of 0.70, indicating good results.
+Achieved an average IOU metric of **0.70**, indicating good results.
 
 To sum it up, the results are solid. We have to keep in mind that real-world scenarios typically involve similar images in the database, facilitating adjustments to the process. This straightforward approach can excel in a stable environment. I assume that using more advanced techniques like DL could yield even better results.
