@@ -18,12 +18,19 @@ args = vars(ap.parse_args())
 iou_mean = 0
 count = 0
 
+resize_x = 1100
+resize_y = 550
+
 # load the input image from disk
 for image in os.listdir(args['images']):
 
     img = cv2.imread(os.path.join('data', image))
+
+    original_height = img.shape[0]
+    original_width = img.shape[1]
+
+    img = cv2.resize(img, (resize_x, resize_y))
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.resize(gray, (1100, 550))
 
     # applying morphological operations to locate potential licence plate locations
 
@@ -147,16 +154,20 @@ for image in os.listdir(args['images']):
             lp_ymax = y + h
 
             lp_coords = [lp_xmin, lp_ymin, lp_xmax, lp_ymax]
+
+            # we need to rescale org coords as the size of the image has been changed
+            scale_x = resize_x / original_width
+            scale_y = resize_y / original_height
             
             # annotation coords
             for image in root.findall('.//image'):
                 if image.get('name') == name + ext:
                     box = image.find('box')
                     if box is not None:
-                        ann_xmin = int(float(box.get('xtl')))
-                        ann_ymin = int(float(box.get('ytl')))
-                        ann_xmax = int(float(box.get('xbr')))
-                        ann_ymax = int(float(box.get('ybr')))
+                        ann_xmin = int(float(box.get('xtl')) * scale_x)
+                        ann_ymin = int(float(box.get('ytl')) * scale_y)
+                        ann_xmax = int(float(box.get('xbr')) * scale_x)
+                        ann_ymax = int(float(box.get('ybr')) * scale_y)
                         lp_number = box.find('attribute[@name="plate number"]')               
 
             ann_coords = [ann_xmin, ann_ymin, ann_xmax, ann_ymax]
