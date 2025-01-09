@@ -23,6 +23,7 @@ for image in os.listdir(args['images']):
 
     img = cv2.imread(os.path.join('data', image))
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.resize(gray, (1100, 550))
 
     # applying morphological operations to locate potential licence plate locations
 
@@ -85,6 +86,7 @@ for image in os.listdir(args['images']):
             roi = cv2.threshold(licensePlate, 0, 255,
                 cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
             break
+        
     if roi is None or not roi.any():
         print("License Plate not found!")
         
@@ -136,7 +138,7 @@ for image in os.listdir(args['images']):
         if args['annotations']:
 
             name, ext = os.path.splitext(image)
-            tree = ET.parse(os.path.join('ann', name + '.xml'))
+            tree = ET.parse('annotations.xml')
             root = tree.getroot()
             # calculated licence plate coords
             lp_xmin = x
@@ -145,21 +147,25 @@ for image in os.listdir(args['images']):
             lp_ymax = y + h
 
             lp_coords = [lp_xmin, lp_ymin, lp_xmax, lp_ymax]
-
+            
             # annotation coords
-            for bndbox in root.iter('bndbox'):
-                ann_xmin = int(bndbox.find('xmin').text)
-                ann_ymin = int(bndbox.find('ymin').text)
-                ann_xmax = int(bndbox.find('xmax').text)
-                ann_ymax = int(bndbox.find('ymax').text)
+            for image in root.findall('.//image'):
+                if image.get('name') == name + ext:
+                    box = image.find('box')
+                    if box is not None:
+                        ann_xmin = int(float(box.get('xtl')))
+                        ann_ymin = int(float(box.get('ytl')))
+                        ann_xmax = int(float(box.get('xbr')))
+                        ann_ymax = int(float(box.get('ybr')))
+                        lp_number = box.find('attribute[@name="plate number"]')               
 
-                ann_coords = [ann_xmin, ann_ymin, ann_xmax, ann_ymax]
+            ann_coords = [ann_xmin, ann_ymin, ann_xmax, ann_ymax]
 
             # calculate iou and draw rectangles
             iou = bb_intersection_over_union(lp_coords, ann_coords)
             cv2.rectangle(img, (ann_xmin, ann_ymin), (ann_xmax, ann_ymax), (0, 255, 0), 2)
-            cv2.rectangle(img, (lp_xmin, lp_ymin), (lp_xmax, lp_ymax), (128, 0, 128), 2)
-            print(f'Intersection over Union(IoU) metric: {iou:.3f}')
+            cv2.rectangle(img, (lp_xmin, lp_ymin), (lp_xmax, lp_ymax), (0, 0, 255), 2)
+            print(f'Intersection over Union (IoU) metric: {iou:.3f}')
 
             if iou != 0:            
                 iou_mean += iou
