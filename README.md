@@ -1,16 +1,13 @@
 # **License Plate Recognition**
 Automatic license/number plate recognition using `python` and `opencv`. The approach involves a simple combination of morphological operations for locating plates and `EasyOCR` for character recognition. Evaluation is based on the **intersection over union** metric.
 
-
-![anpr_car](https://github.com/devude7/license-plate-recognition/assets/112627008/5b1d609c-a78a-4ed0-8020-77dc4bf5b2d2)
-
 # **Data**
 
-The data comes from - [kaggle/car-plate-detection](https://www.kaggle.com/datasets/andrewmvd/car-plate-detection)
+The data comes from our dataset, which we created and labeled ourselves. Published and available on kaggle - [kaggle/poland-vehicle-license-plate-dataset](https://www.kaggle.com/datasets/piotrstefaskiue/poland-vehicle-license-plate-dataset)
 
-I manually selected 20 photos that seem quite good and realistic. The database itself is not completely fitting in my opinion, there are duplicates in it and some photos are completely unsuitable. However, if you look carefully, you can find decent images.
+The dataset contains 195 photos with annotations in an xml file with license plate coordinates. More information about dataset can be found on kaggle
 
-**Now it's important to keep in mind that most images vary a lot**! These differences are pivotal in such a straightforward approach, as selecting and fine-tuning morphological operations to suit all cases proves to be challenging.
+The photos are mostly similar to each other, which aids in conducting an effective machine learning process and also in finding an appropriate approach using traditional computer vision methods. It is worth mentioning that the photos have high resolution and various sizes (if I am not mistaken, there are two different dimensions of the photos in the database), so it is advisable to resize them to reduce computational requirements. However, when resizing, it is important to also adjust the coordinates to the new dimensions.
 
 # **Approach**
 1. **Preprocessing**
@@ -37,11 +34,4 @@ Apply OCR on the region of interest, filtering characters and displaying the res
 If the -a argument is passed, the program will calculate the intersection over union metric based on coordinates provided in XML files in the database and our locally calculated coordinates derived from the license plate candidate contours. Additionally, rectangles are plotted onto the picture to provide a clearer visualization of both sets of coordinates.
 
 # **Results**
-**18 out of 20** plates correctly identified. Among these, 16 had only the license plate itself(high IOU score), while 2 contained additional areas(low IOU score).
-
-
-**8 out of 20** OCR results were completely accurate, some having only one character error and others showing multiple errors. I don't know why the errors occur, as some OCR results aren't correct even though you can cleary see all characters on image passed to OCR.
-
-Achieved an average IOU metric of **0.70**, indicating good results.
-
-To sum it up, the results are solid. We have to keep in mind that real-world scenarios typically involve similar images in the database, facilitating adjustments to the process. This straightforward approach can excel in a stable environment. I assume that using more advanced techniques like DL could yield even better results.
+[In progress]
