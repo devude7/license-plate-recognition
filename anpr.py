@@ -11,20 +11,22 @@ import xml.etree.ElementTree as ET
 reader = easyocr.Reader(['en'])
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--images", type=str, help="path to the image folder")
-ap.add_argument("-a", "--annotations", type=str, help="path to the annotations folder", nargs='?')
+ap.add_argument("-i", "--images", type=str, required=True, help="path to the image folder")
+ap.add_argument("-s", "--show", type=bool, help="if you want to see images, and plotted boxes - True")
 args = vars(ap.parse_args())
 
 iou_mean = 0
-count = 0
+acc = 0
 
 resize_x = 1100
 resize_y = 550
+images_list = os.listdir(args['images'])
 
 # load the input image from disk
-for image in os.listdir(args['images']):
+for image in images_list:
 
     img = cv2.imread(os.path.join('data', image))
+    img_count = len(images_list)
 
     original_height = img.shape[0]
     original_width = img.shape[1]
@@ -89,8 +91,8 @@ for image in os.listdir(args['images']):
 
         if ar >= 2 and ar <= 5:
             lpCnt = c
-            licensePlate = gray[y:y + h, x:x + w]
-            roi = cv2.threshold(licensePlate, 0, 255,
+            license_plate = gray[y:y + h, x:x + w]
+            roi = cv2.threshold(license_plate, 0, 255,
                 cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
             break
         
@@ -104,9 +106,9 @@ for image in os.listdir(args['images']):
         roi = cv2.resize(roi, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
         roi = cv2.erode(roi, None, iterations=1)
 
-        text = reader.readtext(roi, detail = 0)
-        if not text:
-            # if text is empty(propably licence was not detected correctly) we'll get potential licence plate contours without bitwise 
+        ocr_lp = reader.readtext(roi, detail = 0)
+        if not ocr_lp:
+            # if ocr_lp is empty(propably licence was not detected correctly) we'll get potential licence plate contours without bitwise 
             cnts = cv2.findContours(thresh_cb.copy(), cv2.RETR_EXTERNAL,
                 cv2.CHAIN_APPROX_SIMPLE)
             cnts = imutils.grab_contours(cnts)
@@ -122,8 +124,8 @@ for image in os.listdir(args['images']):
 
                 if ar >= 1 and ar <= 6:
                     lpCnt = c
-                    licensePlate = gray[y:y + h, x:x + w]
-                    roi = cv2.threshold(licensePlate, 0, 255,
+                    license_plate = gray[y:y + h, x:x + w]
+                    roi = cv2.threshold(license_plate, 0, 255,
                         cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
                     break
             if roi is None or not roi.any():
@@ -135,56 +137,58 @@ for image in os.listdir(args['images']):
                 roi = cv2.resize(roi, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
                 roi = cv2.erode(roi, None, iterations=1)
 
-                text = reader.readtext(roi, detail = 0)
+                ocr_lp = reader.readtext(roi, detail = 0)
 
-        print(f"Licence plate: {filter_ocr(text[0]) if text else 'Number not detected'}")
-        cv2.imshow("ROI", roi)
-        cv2.imshow("License Plate", licensePlate)
+        ocr_lp = filter_ocr(ocr_lp[0]) if ocr_lp else 'Number not detected'
 
-        # if annotations are passed
-        if args['annotations']:
+        if args['show']:
+            cv2.imshow("ROI", roi)
+            cv2.imshow("License Plate", license_plate)
 
-            name, ext = os.path.splitext(image)
-            tree = ET.parse('annotations.xml')
-            root = tree.getroot()
-            # calculated licence plate coords
-            lp_xmin = x
-            lp_ymin = y
-            lp_xmax = x + w
-            lp_ymax = y + h
+        name, ext = os.path.splitext(image)
+        tree = ET.parse('annotations.xml')
+        root = tree.getroot()
+        # calculated licence plate coords
+        lp_xmin = x
+        lp_ymin = y
+        lp_xmax = x + w
+        lp_ymax = y + h
 
-            lp_coords = [lp_xmin, lp_ymin, lp_xmax, lp_ymax]
+        lp_coords = [lp_xmin, lp_ymin, lp_xmax, lp_ymax]
 
-            # we need to rescale org coords as the size of the image has been changed
-            scale_x = resize_x / original_width
-            scale_y = resize_y / original_height
-            
-            # annotation coords
-            for image in root.findall('.//image'):
-                if image.get('name') == name + ext:
-                    box = image.find('box')
-                    if box is not None:
-                        ann_xmin = int(float(box.get('xtl')) * scale_x)
-                        ann_ymin = int(float(box.get('ytl')) * scale_y)
-                        ann_xmax = int(float(box.get('xbr')) * scale_x)
-                        ann_ymax = int(float(box.get('ybr')) * scale_y)
-                        lp_number = box.find('attribute[@name="plate number"]')               
+        # we need to rescale org coords as the size of the image has been changed
+        scale_x = resize_x / original_width
+        scale_y = resize_y / original_height
+        
+        # annotation coords
+        for image in root.findall('.//image'):
+            if image.get('name') == name + ext:
+                box = image.find('box')
+                if box is not None:
+                    ann_xmin = int(float(box.get('xtl')) * scale_x)
+                    ann_ymin = int(float(box.get('ytl')) * scale_y)
+                    ann_xmax = int(float(box.get('xbr')) * scale_x)
+                    ann_ymax = int(float(box.get('ybr')) * scale_y)
+                    lp_number = box.find('attribute[@name="plate number"]').text            
 
-            ann_coords = [ann_xmin, ann_ymin, ann_xmax, ann_ymax]
+        ann_coords = [ann_xmin, ann_ymin, ann_xmax, ann_ymax]
 
-            # calculate iou and draw rectangles
-            iou = bb_intersection_over_union(lp_coords, ann_coords)
-            cv2.rectangle(img, (ann_xmin, ann_ymin), (ann_xmax, ann_ymax), (0, 255, 0), 2)
-            cv2.rectangle(img, (lp_xmin, lp_ymin), (lp_xmax, lp_ymax), (0, 0, 255), 2)
-            print(f'Intersection over Union (IoU) metric: {iou:.3f}')
+        # calculate iou and draw rectangles
+        iou = bb_intersection_over_union(lp_coords, ann_coords)
+        cv2.rectangle(img, (ann_xmin, ann_ymin), (ann_xmax, ann_ymax), (0, 255, 0), 2)
+        cv2.rectangle(img, (lp_xmin, lp_ymin), (lp_xmax, lp_ymax), (0, 0, 255), 2)
+        print(f'Intersection over Union (IoU) metric: {iou:.3f}') 
+        iou_mean += iou
+             
+        # accuracy
+        print(f"Licence plate: {ocr_lp} == {lp_number}\n")
+        if lp_number == ocr_lp:
+            acc = acc + 1
 
-            if iou != 0:            
-                iou_mean += iou
-                count += 1 
+        if args['show']:
+            cv2.imshow("Orginal", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
-        cv2.imshow("Orginal", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-if args['annotations']:
-    print(f'Intersection over Union(IoU) mean: {(iou_mean / count):.3f}')
+print(f'Accuracy: {(acc / img_count):.3f} %')
+print(f'Intersection over Union(IoU) mean: {(iou_mean / img_count):.3f} %')
