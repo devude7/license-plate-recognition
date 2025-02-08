@@ -7,7 +7,7 @@ def filter_ocr(text):
                 new += ch
     return new
 
-
+# compute iou
 def bb_intersection_over_union(boxA, boxB):
 	
 	xA = max(boxA[0], boxB[0])
@@ -27,3 +27,16 @@ def bb_intersection_over_union(boxA, boxB):
      
 	return iou
 
+# non binary accuracy - compute similarity between strings (result between [0, 1] instead of just 0 or 1)
+def diff_accuracy(ocr_lp: str, true_lp: str) -> float:
+    
+    max_len = max(len(ocr_lp), len(true_lp))
+    
+    # fill unmatching strings '@'
+    ocr_lp = ocr_lp.ljust(max_len, '@')
+    true_lp = true_lp.ljust(max_len, '@')
+    
+    matches = sum(1 for ocr, true in zip(ocr_lp, true_lp) if ocr == true)
+    accuracy = matches / max_len
+    
+    return accuracy

@@ -1,5 +1,5 @@
 from skimage.segmentation import clear_border
-from helpers import filter_ocr, bb_intersection_over_union
+from helpers import filter_ocr, bb_intersection_over_union, diff_accuracy
 import numpy as np
 import imutils
 import cv2
@@ -17,6 +17,7 @@ args = vars(ap.parse_args())
 
 iou_mean = 0
 acc = 0
+diff_acc = 0
 
 resize_x = 1100
 resize_y = 550
@@ -185,10 +186,15 @@ for image in images_list:
         if lp_number == ocr_lp:
             acc = acc + 1
 
+        # diff accuracy
+        diff = diff_accuracy(ocr_lp, lp_number)
+        diff_acc = diff_acc + diff
+
         if args['show']:
             cv2.imshow("Orginal", img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
-print(f'Accuracy: {(acc / img_count):.3f} %')
-print(f'Intersection over Union(IoU) mean: {(iou_mean / img_count):.3f} %')
+print(f'Accuracy: {((acc / img_count) * 100):.1f}%')
+print(f'Diff Accuracy: {((diff_acc / img_count) * 100):.1f}%')
+print(f'Intersection over Union(IoU): {((iou_mean / img_count) * 100):.1f}%')
