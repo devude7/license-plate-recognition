@@ -1,0 +1,14 @@
+[project]
+name = "license-plate-recognition"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "easyocr",
+    "imutils>=0.5.4",
+    "numpy>=2.3.3",
+    "torch>=2.8.0",
+]
+[tool.setuptools]
+py-modules = []
