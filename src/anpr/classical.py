@@ -1,5 +1,5 @@
 from skimage.segmentation import clear_border
-from utils.helpers import filter_ocr, bb_intersection_over_union, diff_accuracy
+from ..utils.helpers import filter_ocr, bb_intersection_over_union, diff_accuracy
 import numpy as np
 import imutils
 import cv2
@@ -17,10 +17,13 @@ resize_y = 550
 
 # load the input image from disk
 def main(imgs_path, DEBUG=False):
+    
+    global iou_mean, acc, diff_acc
     images = os.listdir(imgs_path)
+
     for image in images:
 
-        img = cv2.imread(os.path.join('data', image))
+        img = cv2.imread(os.path.join('data/imgs', image))
         img_count = len(images)
 
         original_height = img.shape[0]
@@ -141,7 +144,7 @@ def main(imgs_path, DEBUG=False):
                 cv2.imshow("License Plate", license_plate)
 
             name, ext = os.path.splitext(image)
-            tree = ET.parse('annotations.xml')
+            tree = ET.parse('data/annotations/annotations.xml')
             root = tree.getroot()
             # calculated licence plate coords
             lp_xmin = x
@@ -192,3 +195,7 @@ def main(imgs_path, DEBUG=False):
     print(f'Accuracy: {((acc / img_count) * 100):.1f}%')
     print(f'Diff Accuracy: {((diff_acc / img_count) * 100):.1f}%')
     print(f'Intersection over Union(IoU): {((iou_mean / img_count) * 100):.1f}%')
+
+
+if __name__ == "__main__":
+    main('data/imgs', False)
