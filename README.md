@@ -1,5 +1,18 @@
 # license-plate-recognition
-License plate recognition with light API and ML module for detection and OCR
+
+## Detector
+
+The detector is a **two-stage pipeline**:
+
+1. **Detection** — A custom-trained **YOLO** (Ultralytics) model (`src/models/best.pt`) localizes the license plate in the image and returns a bounding box. The best box (by confidence) is selected and the plate region is cropped.
+2. **OCR** — The cropped plate image is passed to **TrOCR** (`microsoft/trocr-base-printed`), a transformer-based vision–language model, which reads the plate text. The output is normalized (uppercase, alphanumeric only) for lookup.
+
+Optional EU-flag trimming is applied to the crop before OCR (configurable via `cut_left_ratio`) to avoid the blue strip affecting reading.
+
+## Dataset & training
+The YOLO model was trained on a custom dataset that I co-created, including bounding-box annotations. Training data is prepared from XML annotations and photos via `scripts/prepare_data_for_yolo.py`, which converts them into YOLO format (train/val splits, normalized labels).
+
+- **Dataset**: https://www.kaggle.com/datasets/piotrstefaskiue/poland-vehicle-license-plate-dataset/data
 
 ## Setup
 
